@@ -1,0 +1,53 @@
+﻿@model List<MedicalForum.Mvc.Domain.Entities.Report>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Báo cáo vi phạm - Admin";
+}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item"><i class="fas fa-key"></i> Ph&#226;n quy&#7873;n</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item"><i class="fas fa-user-md"></i> Duyệt Bác sĩ</a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item active"><i class="fas fa-flag"></i> Báo cáo</a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item"><i class="fas fa-file-alt"></i> Bài viết</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <h1 class="admin-page-title"><i class="fas fa-flag"></i> Báo cáo vi phạm</h1>
+        </div>
+        <div class="admin-card">
+            <table class="admin-table">
+                <thead><tr><th>Người báo cáo</th><th>Loại</th><th>Lý do</th><th>Nội dung</th><th>Trạng thái</th><th>Ngày</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                    @foreach (var report in Model)
+                    {
+                        <tr>
+                            <td>@report.Reporter?.FullName</td>
+                            <td>@(report.PostId.HasValue ? "Bài viết" : "Bình luận")</td>
+                            <td><span class="report-reason">@report.Reason</span></td>
+                            <td class="report-details">@(report.Details.Length > 80 ? report.Details[..80] + "..." : report.Details)</td>
+                            <td><span class="status-badge @report.Status.ToString().ToLower()">@report.Status</span></td>
+                            <td>@report.CreatedAt.AddHours(7).ToString("dd/MM HH:mm")</td>
+                            <td>
+                                @if (report.Status == MedicalForum.Mvc.Domain.Enums.ReportStatus.Pending)
+                                {
+                                    <form asp-controller="Admin" asp-action="ResolveReport" method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@report.Id" />
+                                        <button type="submit" name="action" value="resolve" class="btn-approve">✔ Xử lý</button>
+                                        <button type="submit" name="action" value="dismiss" class="btn-reject">✖ Bỏ qua</button>
+                                    </form>
+                                }
+                                else { <span class="resolved-label">Đã xử lý</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>

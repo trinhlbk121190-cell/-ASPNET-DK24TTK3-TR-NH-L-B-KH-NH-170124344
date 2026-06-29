@@ -1,0 +1,160 @@
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Trang chủ - MedForum";
+}
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge"><i class="fas fa-shield-alt"></i> Nền tảng y tế uy tín</div>
+        <h1 class="hero-title">Diễn đàn <span class="gradient-text">Y tế</span><br/>Trực tuyến Việt Nam</h1>
+        <p class="hero-subtitle">Kết nối bệnh nhân với <strong>bác sĩ chuyên khoa</strong> — đặt câu hỏi, nhận tư vấn bảo mật và ẩn danh.</p>
+        <div class="hero-actions">
+            <a asp-controller="Forum" asp-action="Index" class="btn-primary-hero"><i class="fas fa-comments"></i> Vào diễn đàn</a>
+            <a asp-controller="Auth" asp-action="Register" class="btn-secondary-hero"><i class="fas fa-user-plus"></i> Tham gia miễn phí</a>
+        </div>
+        <div class="hero-stats">
+            <div class="stat-item">
+                <span class="stat-number">@ViewBag.TotalPosts</span>
+                <span class="stat-label">Bài viết</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-number">@ViewBag.TotalUsers</span>
+                <span class="stat-label">Thành viên</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <span class="stat-number">@ViewBag.TotalDoctors</span>
+                <span class="stat-label">Bác sĩ xác thực</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="hero-card floating">
+            <div class="hcard-icon"><i class="fas fa-stethoscope"></i></div>
+            <div class="hcard-content">
+                <strong>Tư vấn chuyên khoa</strong>
+                <span>Tim mạch • Da liễu • Nhi khoa</span>
+            </div>
+        </div>
+        <div class="hero-card floating delay-1">
+            <div class="hcard-icon doc"><i class="fas fa-user-md"></i></div>
+            <div class="hcard-content">
+                <strong>Bác sĩ xác thực</strong>
+                <span><i class="fas fa-check-circle text-teal"></i> Đã được kiểm duyệt</span>
+            </div>
+        </div>
+        <div class="hero-card floating delay-2">
+            <div class="hcard-icon anon"><i class="fas fa-user-secret"></i></div>
+            <div class="hcard-content">
+                <strong>Đặt câu hỏi ẩn danh</strong>
+                <span>Bảo mật thông tin 100%</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="section categories-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Chuyên khoa <span class="gradient-text">Y tế</span></h2>
+            <p>Tìm chuyên gia trong lĩnh vực bạn cần</p>
+        </div>
+        <div class="categories-grid">
+            @{
+                var categoryIcons = new Dictionary<string, string> {
+                    {"tim-mach", "fas fa-heart"}, {"da-lieu", "fas fa-allergies"},
+                    {"nhi-khoa", "fas fa-baby"}, {"dinh-duong", "fas fa-apple-alt"},
+                    {"tam-ly-hoc", "fas fa-brain"}
+                };
+                var categoryColors = new Dictionary<string, string> {
+                    {"tim-mach", "cat-red"}, {"da-lieu", "cat-orange"},
+                    {"nhi-khoa", "cat-blue"}, {"dinh-duong", "cat-green"},
+                    {"tam-ly-hoc", "cat-purple"}
+                };
+            }
+            @foreach (var cat in ViewBag.Categories as List<MedicalForum.Mvc.Domain.Entities.Category> ?? new())
+            {
+                var icon = categoryIcons.GetValueOrDefault(cat.Slug, "fas fa-pills");
+                var color = categoryColors.GetValueOrDefault(cat.Slug, "cat-blue");
+                <a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="@cat.Slug" class="category-card @color">
+                    <div class="cat-icon"><i class="@icon"></i></div>
+                    <h3>@cat.Name</h3>
+                    <p>@cat.Description</p>
+                    <span class="cat-arrow"><i class="fas fa-arrow-right"></i></span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Recent Posts -->
+<section class="section posts-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Câu hỏi <span class="gradient-text">mới nhất</span></h2>
+            <a asp-controller="Forum" asp-action="Index" class="see-all">Xem tất cả <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="posts-grid">
+            @foreach (var post in ViewBag.RecentPosts as List<MedicalForum.Mvc.Domain.Entities.Post> ?? new())
+            {
+                <a asp-controller="Forum" asp-action="Post" asp-route-id="@post.Id" class="post-card">
+                    <div class="post-card-header">
+                        <span class="post-category-tag">@post.Category?.Name</span>
+                        @if (post.Comments.Any(c => c.IsDoctorResponse))
+                        { <span class="doctor-answered"><i class="fas fa-check-circle"></i> Bác sĩ đã trả lời</span> }
+                    </div>
+                    <h3 class="post-card-title">@(post.IsAnonymous ? post.Title : post.Title)</h3>
+                    <p class="post-card-excerpt">@(post.Content.Length > 120 ? post.Content[..120] + "..." : post.Content)</p>
+                    <div class="post-card-footer">
+                        <span class="post-author">
+                            @if (post.IsAnonymous)
+                            { <i class="fas fa-user-secret"></i> <span>Ẩn danh</span> }
+                            else
+                            { <i class="fas fa-user"></i> <span>@post.Author?.FullName</span> }
+                        </span>
+                        <div class="post-meta">
+                            <span><i class="fas fa-comment"></i> @post.Comments.Count</span>
+                            <span><i class="fas fa-thumbs-up"></i> @post.Upvotes</span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="section features-section">
+    <div class="container">
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Bác sĩ xác thực</h3>
+                <p>Mọi tài khoản bác sĩ đều được xác minh danh tính và chứng chỉ hành nghề.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-user-secret"></i></div>
+                <h3>Ẩn danh an toàn</h3>
+                <p>Đặt câu hỏi về vấn đề nhạy cảm mà không lo lộ danh tính.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-bell"></i></div>
+                <h3>Thông báo tức thì</h3>
+                <p>Nhận ngay thông báo khi bác sĩ phản hồi câu hỏi của bạn.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-flag"></i></div>
+                <h3>Kiểm duyệt nghiêm ngặt</h3>
+                <p>Hệ thống báo cáo để lọc thông tin sai lệch và quảng cáo thuốc.</p>
+            </div>
+        </div>
+    </div>
+</section>

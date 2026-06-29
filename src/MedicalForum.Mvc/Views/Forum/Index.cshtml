@@ -1,0 +1,140 @@
+@model List<MedicalForum.Mvc.Domain.Entities.Post>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Diễn đàn Y tế - MedForum";
+}
+
+<div class="forum-layout">
+    <!-- Sidebar -->
+    <aside class="forum-sidebar">
+        <div class="sidebar-card">
+            <h3><i class="fas fa-th-list"></i> Chuyên khoa</h3>
+            <ul class="category-list">
+                <li>
+                    <a asp-controller="Forum" asp-action="Index" class="@(ViewBag.ActiveCategory == null ? "active" : "")">
+                        <i class="fas fa-globe"></i> Tất cả
+                    </a>
+                </li>
+                @foreach (var cat in ViewBag.Categories as List<MedicalForum.Mvc.Domain.Entities.Category> ?? new())
+                {
+                    <li>
+                        <a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="@cat.Slug"
+                           class="@((ViewBag.ActiveCategory as MedicalForum.Mvc.Domain.Entities.Category)?.Id == cat.Id ? "active" : "")">
+                            <i class="fas fa-chevron-right"></i> @cat.Name
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="sidebar-cta">
+                <i class="fas fa-plus-circle"></i>
+                <h4>Có câu hỏi?</h4>
+                <p>Đặt câu hỏi và nhận tư vấn từ bác sĩ ngay hôm nay.</p>
+                <a asp-controller="Forum" asp-action="Create" class="btn-cta">Đặt câu hỏi ngay</a>
+            </div>
+        }
+    </aside>
+
+    <!-- Main Forum Content -->
+    <div class="forum-main">
+        <!-- Search & Header -->
+        <div class="forum-header">
+            <div class="forum-title-area">
+                <h1>
+                    @if (ViewBag.ActiveCategory != null)
+                    { <span>@((ViewBag.ActiveCategory as MedicalForum.Mvc.Domain.Entities.Category)?.Name)</span> }
+                    else { <span>Tất cả câu hỏi</span> }
+                </h1>
+                <span class="post-count">@Model.Count bài viết</span>
+            </div>
+            <form asp-controller="Forum" asp-action="Index" method="get" class="search-form">
+                <input type="hidden" name="categorySlug" value="@(ViewBag.ActiveCategory != null ? (ViewBag.ActiveCategory as MedicalForum.Mvc.Domain.Entities.Category)?.Slug : "")" />
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" placeholder="Tìm kiếm câu hỏi..." value="@ViewBag.Search" />
+                    <button type="submit">Tìm</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Posts List -->
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-comment-slash"></i>
+                <h3>Chưa có bài viết nào</h3>
+                <p>Hãy là người đầu tiên đặt câu hỏi trong chuyên mục này!</p>
+                <a asp-controller="Forum" asp-action="Create" class="btn-primary-hero">Đặt câu hỏi ngay</a>
+            </div>
+        }
+        else
+        {
+            <div class="posts-list">
+                @foreach (var post in Model)
+                {
+                    <div class="post-list-item @(post.Comments.Any(c => c.IsDoctorResponse) ? "has-doctor-reply" : "")">
+                        <div class="post-votes">
+                            <div class="vote-count up">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span>@post.Upvotes</span>
+                            </div>
+                            <div class="vote-count">
+                                <i class="fas fa-comment"></i>
+                                <span>@post.Comments.Count(c => !c.IsDeleted)</span>
+                            </div>
+                        </div>
+                        <div class="post-body">
+                            <div class="post-tags">
+                                <span class="tag-category">@post.Category?.Name</span>
+                                @if (post.IsAnonymous) { <span class="tag-anon"><i class="fas fa-user-secret"></i> Ẩn danh</span> }
+                                @if (post.Comments.Any(c => c.IsDoctorResponse))
+                                { <span class="tag-doctor-answered"><i class="fas fa-check-circle"></i> Bác sĩ đã trả lời</span> }
+                                @if (post.ImageUrl != null) { <span class="tag-image"><i class="fas fa-image"></i> Có ảnh</span> }
+                            </div>
+                            <a asp-controller="Forum" asp-action="Post" asp-route-id="@post.Id" class="post-title-link">
+                                <h2>@post.Title</h2>
+                            </a>
+                            <p class="post-excerpt">@(post.Content.Length > 200 ? post.Content[..200] + "..." : post.Content)</p>
+                            <div class="post-meta-row">
+                                <span class="post-author-info">
+                                    @if (post.IsAnonymous)
+                                    { <span><i class="fas fa-user-secret"></i> Thành viên ẩn danh</span> }
+                                    else
+                                    {
+                                        <span>
+                                            <i class="fas fa-user-circle"></i> @post.Author?.FullName
+                                            @if (post.Author?.IsVerifiedDoctor == true)
+                                            { <span class="verified-mini"><i class="fas fa-check-circle"></i></span> }
+                                        </span>
+                                    }
+                                </span>
+                                <span class="post-time"><i class="fas fa-clock"></i> @post.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</span>
+                                <span class="post-views"><i class="fas fa-eye"></i> @post.Views</span>
+                            </div>
+                        </div>
+                        <div class="post-action">
+                            <a asp-controller="Forum" asp-action="Post" asp-route-id="@post.Id" class="btn-view-post">Xem <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if ((int)ViewBag.TotalPages > 1)
+            {
+                <div class="pagination">
+                    @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+                    {
+                        <a asp-controller="Forum" asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-categorySlug="@((ViewBag.ActiveCategory as MedicalForum.Mvc.Domain.Entities.Category)?.Slug)"
+                           asp-route-search="@ViewBag.Search"
+                           class="page-btn @(i == (int)ViewBag.CurrentPage ? "active" : "")">@i</a>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>

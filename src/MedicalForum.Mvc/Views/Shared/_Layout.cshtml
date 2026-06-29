@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewBag.Title ?? "MedForum - Diễn đàn Y tế")</title>
+    <meta name="description" content="Diễn đàn y tế trực tuyến uy tín — kết nối bệnh nhân với bác sĩ chuyên khoa." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNav">
+        <div class="nav-container">
+            <a class="nav-brand" asp-controller="Home" asp-action="Index">
+                <div class="brand-icon"><i class="fas fa-heartbeat"></i></div>
+                <span class="brand-text">Med<span class="brand-accent">Forum</span></span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a asp-controller="Home" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"><i class="fas fa-home"></i> Trang chủ</a></li>
+                <li><a asp-controller="Forum" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Forum" ? "active" : "")"><i class="fas fa-comments"></i> Diễn đàn</a></li>
+                <li><a asp-controller="Home" asp-action="About" class="nav-link"><i class="fas fa-info-circle"></i> Giới thiệu</a></li>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li><a asp-controller="Admin" asp-action="Index" class="nav-link admin-link"><i class="fas fa-shield-alt"></i> Admin</a></li>
+                }
+            </ul>
+
+            <div class="nav-actions">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Forum" asp-action="Create" class="btn-create"><i class="fas fa-plus"></i> Đặt câu hỏi</a>
+                    <div class="user-menu">
+                        <button class="user-avatar-btn" onclick="toggleUserMenu()">
+                            <div class="avatar-circle">@User.Identity.Name?.Substring(0,1).ToUpper()</div>
+                            <span class="user-name">@User.Identity.Name?.Split('@')[0]</span>
+                            @if (User.IsInRole("Doctor"))
+                            { <span class="doctor-badge-mini"><i class="fas fa-check-circle"></i></span> }
+                        </button>
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="dropdown-role">
+                                @if (User.IsInRole("Admin")) { <span class="role-tag admin">Admin</span> }
+                                else if (User.IsInRole("Doctor")) { <span class="role-tag doctor"><i class="fas fa-user-md"></i> Bác sĩ</span> }
+                                else { <span class="role-tag patient">Bệnh nhân</span> }
+                            </div>
+                            <form asp-controller="Auth" asp-action="Logout" method="post" class="logout-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="dropdown-item logout-btn"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <a asp-controller="Auth" asp-action="Login" class="btn-login">Đăng nhập</a>
+                    <a asp-controller="Auth" asp-action="Register" class="btn-register">Đăng ký</a>
+                }
+            </div>
+        </div>
+    </nav>
+
+    <!-- Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert-toast success" id="successAlert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert-toast error" id="errorAlert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+        </div>
+    }
+
+    <!-- Main Content -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="brand-icon small"><i class="fas fa-heartbeat"></i></div>
+                <span>Med<span class="brand-accent">Forum</span></span>
+                <p>Diễn đàn y tế trực tuyến uy tín tại Việt Nam</p>
+            </div>
+            <div class="footer-links">
+                <h4>Chuyên khoa</h4>
+                <ul>
+                    <li><a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="tim-mach">Tim mạch</a></li>
+                    <li><a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="da-lieu">Da liễu</a></li>
+                    <li><a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="nhi-khoa">Nhi khoa</a></li>
+                    <li><a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="tam-ly-hoc">Tâm lý học</a></li>
+                </ul>
+            </div>
+            <div class="footer-disclaimer">
+                <h4><i class="fas fa-exclamation-triangle"></i> Tuyên bố y tế</h4>
+                <p>Thông tin trên MedForum chỉ mang tính chất tham khảo. Hãy tham khảo ý kiến bác sĩ cho chẩn đoán và điều trị chính xác.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 MedForum. Xây dựng vì cộng đồng sức khỏe Việt Nam.</p>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

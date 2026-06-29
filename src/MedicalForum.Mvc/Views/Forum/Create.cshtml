@@ -1,0 +1,107 @@
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Đặt câu hỏi - MedForum";
+}
+
+<div class="create-post-page">
+    <div class="create-post-container">
+        <div class="create-header">
+            <h1><i class="fas fa-edit"></i> Đặt câu hỏi y tế</h1>
+            <p>Mô tả triệu chứng và câu hỏi của bạn để nhận tư vấn từ cộng đồng và bác sĩ.</p>
+        </div>
+
+        <div class="create-form-card">
+            <form asp-controller="Forum" asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group">
+                    <label><i class="fas fa-heading"></i> Tiêu đề câu hỏi <span class="required">*</span></label>
+                    <input type="text" name="title" placeholder="Ví dụ: Đau ngực khi leo cầu thang có phải bệnh tim không?" required maxlength="250" class="form-control" />
+                    <span class="hint">Tiêu đề rõ ràng giúp bác sĩ trả lời nhanh hơn</span>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-stethoscope"></i> Chuyên khoa <span class="required">*</span></label>
+                    <select name="categoryId" required class="form-control">
+                        <option value="">-- Chọn chuyên khoa --</option>
+                        @foreach (var cat in ViewBag.Categories as List<MedicalForum.Mvc.Domain.Entities.Category> ?? new())
+                        {
+                            <option value="@cat.Id">@cat.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-file-alt"></i> Mô tả chi tiết <span class="required">*</span></label>
+                    <textarea name="content" rows="8" required placeholder="Mô tả chi tiết triệu chứng, thời gian xuất hiện, mức độ, tiền sử bệnh... Càng chi tiết bác sĩ càng dễ tư vấn." class="form-control"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-image"></i> Đính kèm ảnh (tùy chọn)</label>
+                    <div class="file-upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Nhấn để tải ảnh kết quả xét nghiệm, tình trạng da...</p>
+                        <span>.jpg, .jpeg, .png, .webp — Tối đa 5MB</span>
+                        <input type="file" name="image" id="imageInput" accept=".jpg,.jpeg,.png,.webp" onchange="previewImage(this)" style="display:none" />
+                    </div>
+                    <div id="imagePreview" style="display:none" class="image-preview-container">
+                        <img id="previewImg" src="" alt="Preview" />
+                        <button type="button" onclick="removeImage()" class="remove-image"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="toggle-label">
+                        <input type="checkbox" name="isAnonymous" value="true" id="anonCheck" onchange="toggleAnonInfo()" />
+                        <div class="toggle-switch"></div>
+                        <div class="toggle-text">
+                            <span><i class="fas fa-user-secret"></i> Đăng ẩn danh</span>
+                            <small>Tên của bạn sẽ không hiển thị với người khác</small>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="disclaimer-notice">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Bài viết của bạn sẽ tự động đính kèm cảnh báo: <em>"Thông tin chỉ mang tính chất tham khảo, không thay thế chẩn đoán hoặc điều trị y khoa chuyên nghiệp."</em></p>
+                </div>
+
+                <div class="form-submit">
+                    <button type="submit" class="btn-submit-post"><i class="fas fa-paper-plane"></i> Đăng câu hỏi</button>
+                    <a asp-controller="Forum" asp-action="Index" class="btn-cancel">Hủy</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="posting-tips">
+            <h3><i class="fas fa-lightbulb"></i> Mẹo đặt câu hỏi hiệu quả</h3>
+            <ul>
+                <li><i class="fas fa-check"></i> Mô tả triệu chứng cụ thể (đau ở đâu, khi nào, mức độ)</li>
+                <li><i class="fas fa-check"></i> Cho biết tuổi, giới tính, tiền sử bệnh nếu cần</li>
+                <li><i class="fas fa-check"></i> Đính kèm ảnh nếu là vấn đề về da hoặc kết quả xét nghiệm</li>
+                <li><i class="fas fa-check"></i> Chọn đúng chuyên khoa để nhận tư vấn chính xác</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('uploadArea').style.display = 'none';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function removeImage() {
+        document.getElementById('imageInput').value = '';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('uploadArea').style.display = 'flex';
+    }
+</script>
+}

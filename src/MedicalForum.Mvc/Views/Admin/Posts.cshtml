@@ -1,0 +1,86 @@
+@model List<MedicalForum.Mvc.Domain.Entities.Post>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Quản lý bài viết - Admin";
+}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item"><i class="fas fa-key"></i> Ph&#226;n quy&#7873;n</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item"><i class="fas fa-user-md"></i> Duyệt Bác sĩ</a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item"><i class="fas fa-flag"></i> Báo cáo</a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item active"><i class="fas fa-file-alt"></i> Bài viết</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-topbar"><h1 class="admin-page-title"><i class="fas fa-file-alt"></i> Quản lý bài viết</h1></div>
+        <div class="admin-card">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Tiêu đề</th>
+                        <th>Tác giả</th>
+                        <th>Chuyên khoa</th>
+                        <th>Bác sĩ phụ trách</th>
+                        <th>Ngày</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var verifiedDoctors = ViewBag.VerifiedDoctors as List<MedicalForum.Mvc.Domain.Entities.User> ?? new List<MedicalForum.Mvc.Domain.Entities.User>();
+                    }
+                    @foreach (var post in Model)
+                    {
+                        <tr class="@(post.IsDeleted ? "deleted-row" : "")">
+                            <td><a asp-controller="Forum" asp-action="Post" asp-route-id="@post.Id" target="_blank">@(post.Title.Length>50?post.Title[..50]+"...":post.Title)</a></td>
+                            <td>@(post.IsAnonymous ? "Ẩn danh" : post.Author?.FullName)</td>
+                            <td>@post.Category?.Name</td>
+                            
+                            <!-- Bác sĩ phụ trách -->
+                            <td>
+                                @if (post.IsDeleted)
+                                {
+                                    <span>—</span>
+                                }
+                                else
+                                {
+                                    <form asp-controller="Admin" asp-action="ManualAssignDoctor" method="post" style="display:flex; gap: 4px; align-items:center;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="postId" value="@post.Id" />
+                                        <select name="doctorId" class="form-control" style="background:var(--dark-2); color:white; border:1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; width: 170px;" onchange="this.form.submit()">
+                                            <option value="">-- Chưa chỉ định --</option>
+                                            @foreach (var doc in verifiedDoctors)
+                                            {
+                                                <!option value="@doc.Id" @(post.AssignedDoctorId == doc.Id ? "selected" : "")>
+                                                    @doc.FullName (@(doc.Specialty ?? "Chuyên khoa"))
+                                                </!option>
+                                            }
+                                        </select>
+                                    </form>
+                                }
+                            </td>
+
+                            <td>@post.CreatedAt.AddHours(7).ToString("dd/MM HH:mm")</td>
+                            <td><span class="status-badge @(post.IsDeleted ? "banned" : "active")">@(post.IsDeleted ? "Đã xóa" : "Hoạt động")</span></td>
+                            <td>
+                                @if (!post.IsDeleted)
+                                {
+                                    <form asp-controller="Admin" asp-action="DeletePost" method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@post.Id" />
+                                        <button type="submit" class="btn-reject" onclick="return confirm('Xóa bài viết này?')"><i class="fas fa-trash"></i> Xóa</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>

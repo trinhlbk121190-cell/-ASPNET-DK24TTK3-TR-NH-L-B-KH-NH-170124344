@@ -1,0 +1,299 @@
+@model MedicalForum.Mvc.Domain.Entities.Post
+@{
+    Layout = "_Layout";
+    ViewBag.Title = Model.Title + " - MedForum";
+    var sortedComments = ViewBag.SortedComments as List<MedicalForum.Mvc.Domain.Entities.Comment> ?? new();
+    var userVotes = ViewBag.UserVotes as List<MedicalForum.Mvc.Domain.Entities.Vote> ?? new();
+    var postVote = userVotes.FirstOrDefault(v => v.PostId == Model.Id);
+}
+
+<div class="post-detail-layout">
+    <!-- Post Content -->
+    <div class="post-detail-main">
+        <div class="post-detail-card">
+            <!-- Breadcrumb -->
+            <div class="breadcrumb">
+                <a asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i></a>
+                <i class="fas fa-chevron-right"></i>
+                <a asp-controller="Forum" asp-action="Index">Diễn đàn</a>
+                <i class="fas fa-chevron-right"></i>
+                <a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="@Model.Category?.Slug">@Model.Category?.Name</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>@(Model.Title.Length > 40 ? Model.Title[..40] + "..." : Model.Title)</span>
+            </div>
+
+            <!-- Post Header -->
+            <div class="post-header">
+                <div class="post-category-badge">@Model.Category?.Name</div>
+                <h1 class="post-detail-title">@Model.Title</h1>
+                <div class="post-author-row">
+                    <div class="author-info">
+                        @if (Model.IsAnonymous)
+                        {
+                            <div class="author-avatar anon"><i class="fas fa-user-secret"></i></div>
+                            <div><strong>Thành viên ẩn danh</strong><span class="anon-label">Câu hỏi ẩn danh</span></div>
+                        }
+                        else
+                        {
+                            <div class="author-avatar">@(Model.Author?.FullName?.Substring(0,1) ?? "U")</div>
+                            <div>
+                                <strong>@Model.Author?.FullName</strong>
+                                @if (Model.Author?.IsVerifiedDoctor == true)
+                                { <span class="verified-badge"><i class="fas fa-check-circle"></i> Bác sĩ xác thực</span> }
+                            </div>
+                        }
+                    </div>
+                    <div class="post-meta-info">
+                        <span><i class="fas fa-clock"></i> @Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</span>
+                        <span><i class="fas fa-eye"></i> @Model.Views lượt xem</span>
+                        <span><i class="fas fa-comment"></i> @sortedComments.Count bình luận</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.AssignedDoctor != null)
+            {
+                <div class="assigned-doctor-banner" style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                    <div style="font-size: 1.5rem; color: var(--primary);"><i class="fas fa-user-md"></i></div>
+                    <div>
+                        <strong style="color: var(--primary);">Bác sĩ phụ trách giải đáp:</strong>
+                        <span style="color: var(--text-primary);">@Model.AssignedDoctor.FullName (@Model.AssignedDoctor.Specialty - @Model.AssignedDoctor.Hospital)</span>
+                    </div>
+                </div>
+            }
+
+            <!-- Post Content -->
+            <div class="post-content">
+                <p>@Html.Raw(Model.Content.Replace("\n", "<br/>"))</p>
+            </div>
+
+            <!-- Image -->
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <div class="post-image">
+                    <img src="@Model.ImageUrl" alt="Ảnh đính kèm" onclick="openImageModal(this.src)" />
+                    <span class="image-label"><i class="fas fa-image"></i> Ảnh đính kèm</span>
+                </div>
+            }
+
+            <!-- Medical Disclaimer -->
+            <div class="medical-disclaimer">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Lưu ý y tế:</strong> @Model.MedicalDisclaimer
+            </div>
+
+            <!-- Vote & Report Actions -->
+            <div class="post-actions-bar">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="vote-buttons" id="post-votes-@Model.Id">
+                        <button class="vote-btn upvote @(postVote?.Type == MedicalForum.Mvc.Domain.Enums.VoteType.Upvote ? "voted" : "")"
+                                onclick="vote('post', '@Model.Id', 1, this)">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span class="vcount">@Model.Upvotes</span>
+                        </button>
+                        <button class="vote-btn downvote @(postVote?.Type == MedicalForum.Mvc.Domain.Enums.VoteType.Downvote ? "voted" : "")"
+                                onclick="vote('post', '@Model.Id', -1, this)">
+                            <i class="fas fa-thumbs-down"></i>
+                            <span class="vcount">@Model.Downvotes</span>
+                        </button>
+                    </div>
+                    <button class="report-btn" onclick="toggleReport('post-@Model.Id')"><i class="fas fa-flag"></i> Báo cáo</button>
+                }
+                else
+                {
+                    <span class="votes-display"><i class="fas fa-thumbs-up"></i> @Model.Upvotes &nbsp; <i class="fas fa-thumbs-down"></i> @Model.Downvotes</span>
+                }
+            </div>
+
+            <!-- Report Form -->
+            <div class="report-form-panel" id="report-form-post-@Model.Id" style="display:none">
+                <form asp-controller="Forum" asp-action="Report" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <h4><i class="fas fa-flag"></i> Báo cáo bài viết</h4>
+                    <select name="reason" required>
+                        <option value="">-- Chọn lý do --</option>
+                        <option>Thông tin y tế sai lệch</option>
+                        <option>Quảng cáo thuốc không rõ nguồn gốc</option>
+                        <option>Nội dung vi phạm cộng đồng</option>
+                        <option>Spam</option>
+                    </select>
+                    <textarea name="details" placeholder="Mô tả chi tiết..." rows="3"></textarea>
+                    <div class="report-actions">
+                        <button type="submit" class="btn-report-submit">Gửi báo cáo</button>
+                        <button type="button" onclick="toggleReport('post-@Model.Id')">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section">
+            <h2 class="comments-title"><i class="fas fa-comments"></i> @sortedComments.Count Bình luận</h2>
+
+            @foreach (var comment in sortedComments)
+            {
+                var commentVote = userVotes.FirstOrDefault(v => v.CommentId == comment.Id);
+                <div class="comment-card @(comment.IsDoctorResponse ? "doctor-comment" : "")">
+                    @if (comment.IsDoctorResponse)
+                    {
+                        <div class="doctor-reply-banner"><i class="fas fa-user-md"></i> Phản hồi từ Bác sĩ xác thực</div>
+                    }
+                    <div class="comment-author-row">
+                        <div class="author-info">
+                            @if (comment.IsAnonymous)
+                            {
+                                <div class="author-avatar anon small"><i class="fas fa-user-secret"></i></div>
+                                <strong>Thành viên ẩn danh</strong>
+                            }
+                            else
+                            {
+                                <div class="author-avatar small">@(comment.Author?.FullName?.Substring(0,1) ?? "U")</div>
+                                <div>
+                                    <strong>@comment.Author?.FullName</strong>
+                                    @if (comment.IsDoctorResponse)
+                                    { <span class="verified-badge small"><i class="fas fa-check-circle"></i> Bác sĩ</span> }
+                                </div>
+                            }
+                        </div>
+                        <span class="comment-time">@comment.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="comment-content">
+                        <p>@Html.Raw(comment.Content.Replace("\n", "<br/>"))</p>
+                    </div>
+                    @if (!string.IsNullOrEmpty(comment.MedicalDisclaimer))
+                    {
+                        <div class="comment-disclaimer">
+                            <i class="fas fa-info-circle"></i> @comment.MedicalDisclaimer
+                        </div>
+                    }
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="comment-actions">
+                            <div class="vote-buttons small" id="comment-votes-@comment.Id">
+                                <button class="vote-btn upvote @(commentVote?.Type == MedicalForum.Mvc.Domain.Enums.VoteType.Upvote ? "voted" : "")"
+                                        onclick="vote('comment', '@comment.Id', 1, this)">
+                                    <i class="fas fa-thumbs-up"></i> <span class="vcount">@comment.Upvotes</span>
+                                </button>
+                                <button class="vote-btn downvote @(commentVote?.Type == MedicalForum.Mvc.Domain.Enums.VoteType.Downvote ? "voted" : "")"
+                                        onclick="vote('comment', '@comment.Id', -1, this)">
+                                    <i class="fas fa-thumbs-down"></i> <span class="vcount">@comment.Downvotes</span>
+                                </button>
+                            </div>
+                            <button class="report-btn small" onclick="toggleReport('comment-@comment.Id')"><i class="fas fa-flag"></i></button>
+                        </div>
+                        <div class="report-form-panel" id="report-form-comment-@comment.Id" style="display:none">
+                            <form asp-controller="Forum" asp-action="Report" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="commentId" value="@comment.Id" />
+                                <select name="reason" required>
+                                    <option value="">-- Chọn lý do --</option>
+                                    <option>Thông tin y tế sai lệch</option>
+                                    <option>Quảng cáo thuốc không rõ nguồn gốc</option>
+                                    <option>Nội dung vi phạm cộng đồng</option>
+                                </select>
+                                <textarea name="details" placeholder="Mô tả chi tiết..." rows="2"></textarea>
+                                <div class="report-actions">
+                                    <button type="submit" class="btn-report-submit">Gửi</button>
+                                    <button type="button" onclick="toggleReport('comment-@comment.Id')">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="comment-actions">
+                            <span class="votes-display small"><i class="fas fa-thumbs-up"></i> @comment.Upvotes</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Add Comment -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="add-comment-card">
+                    <h3><i class="fas fa-reply"></i> Viết bình luận</h3>
+                    <form asp-controller="Forum" asp-action="Comment" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="postId" value="@Model.Id" />
+                        <textarea name="content" placeholder="Nhập bình luận của bạn..." rows="4" required></textarea>
+                        <div class="comment-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="isAnonymous" value="true" />
+                                <i class="fas fa-user-secret"></i> Bình luận ẩn danh
+                            </label>
+                            <button type="submit" class="btn-submit-comment">
+                                <i class="fas fa-paper-plane"></i> Gửi bình luận
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="login-to-comment">
+                    <i class="fas fa-lock"></i>
+                    <p>Vui lòng <a asp-controller="Auth" asp-action="Login">đăng nhập</a> để bình luận.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside class="post-sidebar">
+        <div class="sidebar-card">
+            <h3><i class="fas fa-tags"></i> Chuyên khoa</h3>
+            <ul class="category-list">
+                @foreach (var cat in ViewBag.Categories as List<MedicalForum.Mvc.Domain.Entities.Category> ?? new())
+                {
+                    <li><a asp-controller="Forum" asp-action="Index" asp-route-categorySlug="@cat.Slug"><i class="fas fa-chevron-right"></i> @cat.Name</a></li>
+                }
+            </ul>
+        </div>
+        <div class="disclaimer-widget">
+            <div class="dw-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h4>Quan trọng</h4>
+            <p>Mọi thông tin tư vấn trên MedForum chỉ mang tính tham khảo. Hãy thăm khám bác sĩ để được chẩn đoán chính xác.</p>
+        </div>
+    </aside>
+</div>
+
+<!-- Image Modal -->
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <img id="modalImage" src="" />
+</div>
+
+@section Scripts {
+    <script>
+        function vote(type, id, voteType, btn) {
+            const url = '/Forum/Vote';
+            const data = new URLSearchParams();
+            data.append(type === 'post' ? 'postId' : 'commentId', id);
+            data.append('type', voteType);
+            data.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            
+            fetch(url, { method: 'POST', body: data })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.error) return;
+                    const container = btn.closest('.vote-buttons');
+                    const ups = container.querySelectorAll('.vcount');
+                    container.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('voted'));
+                    ups[0].textContent = result.upvotes;
+                    ups[1].textContent = result.downvotes;
+                    if (result.userVoteStatus === 'Upvoted') container.querySelector('.upvote').classList.add('voted');
+                    else if (result.userVoteStatus === 'Downvoted') container.querySelector('.downvote').classList.add('voted');
+                });
+        }
+
+        function toggleReport(id) {
+            const panel = document.getElementById('report-form-' + id);
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function openImageModal(src) { document.getElementById('imageModal').style.display='flex'; document.getElementById('modalImage').src=src; }
+        function closeImageModal() { document.getElementById('imageModal').style.display='none'; }
+    </script>
+}

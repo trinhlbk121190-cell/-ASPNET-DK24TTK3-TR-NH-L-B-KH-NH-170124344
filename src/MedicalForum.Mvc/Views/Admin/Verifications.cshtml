@@ -1,0 +1,71 @@
+﻿@model List<MedicalForum.Mvc.Domain.Entities.DoctorVerificationRequest>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Duyệt hồ sơ Bác sĩ - Admin";
+}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item"><i class="fas fa-key"></i> Ph&#226;n quy&#7873;n</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item active"><i class="fas fa-user-md"></i> Duyệt Bác sĩ</a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item"><i class="fas fa-flag"></i> Báo cáo</a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item"><i class="fas fa-file-alt"></i> Bài viết</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <h1 class="admin-page-title"><i class="fas fa-user-md"></i> Duyệt hồ sơ Bác sĩ</h1>
+        </div>
+        @if (!Model.Any())
+        {
+            <div class="empty-state admin"><i class="fas fa-check-circle"></i><h3>Không có yêu cầu nào chờ duyệt</h3></div>
+        }
+        else
+        {
+            <div class="verifications-grid">
+                @foreach (var req in Model)
+                {
+                    <div class="verification-card @req.Status.ToString().ToLower()">
+                        <div class="vc-header">
+                            <div class="vc-avatar">@(req.Doctor?.FullName?.Substring(0,1) ?? "D")</div>
+                            <div>
+                                <h3>@req.Doctor?.FullName</h3>
+                                <span>@req.Doctor?.Email</span>
+                            </div>
+                            <span class="vc-status @req.Status.ToString().ToLower()">@req.Status</span>
+                        </div>
+                        <div class="vc-details">
+                            <div class="vc-field"><i class="fas fa-stethoscope"></i> <strong>Chuyên khoa:</strong> @req.Specialty</div>
+                            <div class="vc-field"><i class="fas fa-hospital"></i> <strong>Bệnh viện:</strong> @req.Hospital</div>
+                            <div class="vc-field"><i class="fas fa-calendar"></i> <strong>Ngày gửi:</strong> @req.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                            @if (!string.IsNullOrEmpty(req.CertificateImageUrl))
+                            {
+                                <div class="vc-field"><i class="fas fa-certificate"></i> <a href="@req.CertificateImageUrl" target="_blank">Xem chứng chỉ</a></div>
+                            }
+                        </div>
+                        @if (req.Status == MedicalForum.Mvc.Domain.Enums.VerificationStatus.Pending)
+                        {
+                            <div class="vc-actions">
+                                <form asp-controller="Admin" asp-action="ApproveVerification" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@req.Id" />
+                                    <button type="submit" class="btn-approve" onclick="return confirm('Cấp badge Bác sĩ cho @req.Doctor?.FullName?')"><i class="fas fa-check"></i> Duyệt</button>
+                                </form>
+                                <form asp-controller="Admin" asp-action="RejectVerification" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@req.Id" />
+                                    <input type="text" name="notes" placeholder="Lý do từ chối..." class="form-control inline" />
+                                    <button type="submit" class="btn-reject" onclick="return confirm('Từ chối yêu cầu này?')"><i class="fas fa-times"></i> Từ chối</button>
+                                </form>
+                            </div>
+                        }
+                        else { <div class="vc-resolved"><i class="fas fa-info-circle"></i> Đã xử lý lúc @req.ReviewedAt?.AddHours(7).ToString("dd/MM/yyyy")</div> }
+                    </div>
+                }
+            </div>
+        }
+    </main>
+</div>

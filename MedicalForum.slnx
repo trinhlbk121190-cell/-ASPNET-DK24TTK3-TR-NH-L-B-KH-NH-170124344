@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MedicalForum.Mvc/MedicalForum.Mvc.csproj" />
+    <Project Path="src/MedicalForum.WebApi/MedicalForum.WebApi.csproj" />
+  </Folder>
+</Solution>

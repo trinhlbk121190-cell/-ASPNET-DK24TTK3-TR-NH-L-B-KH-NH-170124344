@@ -1,0 +1,111 @@
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Admin Dashboard - MedForum";
+}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Index"?"active":"")"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Users"?"active":"")"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Roles"?"active":"")"><i class="fas fa-key"></i> Phân quyền</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Verifications"?"active":"")"><i class="fas fa-user-md"></i> Duyệt Bác sĩ <span class="badge">@ViewBag.PendingVerifications</span></a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Reports"?"active":"")"><i class="fas fa-flag"></i> Báo cáo <span class="badge">@ViewBag.PendingReports</span></a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString()=="Posts"?"active":"")"><i class="fas fa-file-alt"></i> Bài viết</a>
+            <a asp-controller="Forum" asp-action="Index" class="admin-nav-item"><i class="fas fa-external-link-alt"></i> Xem diễn đàn</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <h1 class="admin-page-title"><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+            <span class="admin-greeting">Xin chào, Admin</span>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                <div class="stat-info"><span class="stat-value">@ViewBag.TotalPosts</span><span class="stat-desc">Tổng bài viết</span></div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><span class="stat-value">@ViewBag.TotalUsers</span><span class="stat-desc">Người dùng</span></div>
+            </div>
+            <div class="stat-card teal">
+                <div class="stat-icon"><i class="fas fa-user-md"></i></div>
+                <div class="stat-info"><span class="stat-value">@ViewBag.TotalDoctors</span><span class="stat-desc">Bác sĩ xác thực</span></div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-info"><span class="stat-value">@ViewBag.PendingVerifications</span><span class="stat-desc">Chờ duyệt bác sĩ</span></div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon"><i class="fas fa-flag"></i></div>
+                <div class="stat-info"><span class="stat-value">@ViewBag.PendingReports</span><span class="stat-desc">Báo cáo chờ xử lý</span></div>
+            </div>
+        </div>
+
+        <!-- Recent Posts -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3><i class="fas fa-file-alt"></i> Bài viết gần đây</h3>
+                <a asp-controller="Admin" asp-action="Posts">Xem tất cả</a>
+            </div>
+            <table class="admin-table">
+                <thead><tr><th>Tiêu đề</th><th>Tác giả</th><th>Chuyên khoa</th><th>Ngày</th></tr></thead>
+                <tbody>
+                    @foreach (var post in ViewBag.RecentPosts as List<MedicalForum.Mvc.Domain.Entities.Post> ?? new())
+                    {
+                        <tr>
+                            <td><a asp-controller="Forum" asp-action="Post" asp-route-id="@post.Id">@(post.Title.Length > 50 ? post.Title[..50] + "..." : post.Title)</a></td>
+                            <td>@(post.IsAnonymous ? "Ẩn danh" : post.Author?.FullName)</td>
+                            <td><span class="tag-category small">@post.Category?.Name</span></td>
+                            <td>@post.CreatedAt.AddHours(7).ToString("dd/MM HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Chỉnh sửa trang Giới thiệu (About) -->
+        @{
+            var about = ViewBag.AboutData as Dictionary<string, string> ?? new Dictionary<string, string>();
+            var mission = about.ContainsKey("Mission") ? about["Mission"] : "";
+            var vision = about.ContainsKey("Vision") ? about["Vision"] : "";
+            var values = about.ContainsKey("Values") ? about["Values"] : "";
+            var verification = about.ContainsKey("Verification") ? about["Verification"] : "";
+        }
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3><i class="fas fa-edit"></i> Chỉnh sửa thông tin giới thiệu (About)</h3>
+            </div>
+            <form asp-controller="Admin" asp-action="UpdateAbout" method="post" style="display:flex; flex-direction:column; gap: 15px; margin-top: 15px;">
+                @Html.AntiForgeryToken()
+                
+                <div class="form-group" style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;"><i class="fas fa-bullseye" style="color:var(--primary);"></i> Sứ mệnh</label>
+                    <textarea name="mission" rows="2" class="form-control" style="background:var(--dark-2); color:white; border:1px solid var(--border); padding:10px; border-radius:8px;" required>@mission</textarea>
+                </div>
+                
+                <div class="form-group" style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;"><i class="fas fa-eye" style="color:var(--secondary);"></i> Tầm nhìn</label>
+                    <textarea name="vision" rows="2" class="form-control" style="background:var(--dark-2); color:white; border:1px solid var(--border); padding:10px; border-radius:8px;" required>@vision</textarea>
+                </div>
+
+                <div class="form-group" style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;"><i class="fas fa-heart" style="color:var(--danger);"></i> Giá trị cốt lõi</label>
+                    <textarea name="values" rows="2" class="form-control" style="background:var(--dark-2); color:white; border:1px solid var(--border); padding:10px; border-radius:8px;" required>@values</textarea>
+                </div>
+
+                <div class="form-group" style="display:flex; flex-direction:column; gap:5px;">
+                    <label style="font-weight:600;"><i class="fas fa-certificate" style="color:var(--warning);"></i> Xác thực chuyên gia</label>
+                    <textarea name="verification" rows="2" class="form-control" style="background:var(--dark-2); color:white; border:1px solid var(--border); padding:10px; border-radius:8px;" required>@verification</textarea>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <button type="submit" class="btn-create" style="border:none; cursor:pointer; padding:10px 24px;"><i class="fas fa-save"></i> Lưu cấu hình</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>

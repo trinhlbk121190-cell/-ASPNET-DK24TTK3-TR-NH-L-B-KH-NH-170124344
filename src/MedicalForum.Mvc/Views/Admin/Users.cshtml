@@ -1,0 +1,62 @@
+﻿@model List<MedicalForum.Mvc.Domain.Entities.User>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Quản lý người dùng - Admin";
+    var userRoles = ViewBag.UserRoles as Dictionary<Guid, IList<string>> ?? new();
+}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item active"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item"><i class="fas fa-key"></i> Ph&#226;n quy&#7873;n</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item"><i class="fas fa-user-md"></i> Duyệt Bác sĩ</a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item"><i class="fas fa-flag"></i> Báo cáo</a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item"><i class="fas fa-file-alt"></i> Bài viết</a>
+        </nav>
+    </aside>
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <h1 class="admin-page-title"><i class="fas fa-users"></i> Quản lý người dùng</h1>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <form asp-controller="Admin" asp-action="Users" method="get" class="search-form">
+                    <input type="text" name="search" placeholder="Tìm kiếm theo tên, email..." value="@ViewBag.Search" class="form-control" />
+                    <button type="submit" class="btn-search">Tìm</button>
+                </form>
+            </div>
+            <table class="admin-table">
+                <thead><tr><th>Tên</th><th>Email</th><th>Vai trò</th><th>Bác sĩ</th><th>Ngày tạo</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        var roles = userRoles.GetValueOrDefault(user.Id, new List<string>());
+                        <tr class="@(user.IsBanned ? "banned-row" : "")">
+                            <td><strong>@user.FullName</strong></td>
+                            <td>@user.Email</td>
+                            <td>
+                                @foreach (var r in roles)
+                                { <span class="role-badge @r.ToLower()">@r</span> }
+                            </td>
+                            <td>@(user.IsVerifiedDoctor ? "✅" : "—")</td>
+                            <td>@user.CreatedAt.AddHours(7).ToString("dd/MM/yyyy")</td>
+                            <td><span class="status-badge @(user.IsBanned ? "banned" : "active")">@(user.IsBanned ? "Bị khóa" : "Hoạt động")</span></td>
+                            <td>
+                                <form asp-controller="Admin" asp-action="BanUser" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn-action @(user.IsBanned ? "btn-unban" : "btn-ban")"
+                                            onclick="return confirm('@(user.IsBanned ? "Mở khóa" : "Khóa") tài khoản này?')">
+                                        @(user.IsBanned ? "Mở khóa" : "Khóa")
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>

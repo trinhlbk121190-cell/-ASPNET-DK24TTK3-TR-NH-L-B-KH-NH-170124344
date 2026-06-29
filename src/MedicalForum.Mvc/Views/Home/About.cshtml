@@ -1,0 +1,41 @@
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Giới thiệu - MedForum";
+    var about = ViewBag.AboutData as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var mission = about.ContainsKey("Mission") ? about["Mission"] : "Kết nối bệnh nhân với các bác sĩ chuyên khoa...";
+    var vision = about.ContainsKey("Vision") ? about["Vision"] : "Trở thành cộng đồng y tế trực tuyến...";
+    var values = about.ContainsKey("Values") ? about["Values"] : "Uy tín — Bảo mật — Chuyên môn...";
+    var verification = about.ContainsKey("Verification") ? about["Verification"] : "Mọi tài khoản bác sĩ đều trải qua...";
+}
+<div class="about-section">
+    <div class="section-header" style="text-align:center; margin-bottom:3rem;">
+        <h1>Về <span class="gradient-text">MedForum</span></h1>
+        <p>Nền tảng diễn đàn y tế đáng tin cậy tại Việt Nam</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-bullseye"></i></div>
+            <h3>Sứ mệnh</h3>
+            <p>@mission</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-eye"></i></div>
+            <h3>Tầm nhìn</h3>
+            <p>@vision</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-heart"></i></div>
+            <h3>Giá trị cốt lõi</h3>
+            <p>@values</p>
+        </div>
+        <div class="feature-item">
+            <div class="feature-icon"><i class="fas fa-certificate"></i></div>
+            <h3>Xác thực chuyên gia</h3>
+            <p>@verification</p>
+        </div>
+    </div>
+    <div class="medical-disclaimer" style="max-width:800px; margin: 3rem auto 0;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p><strong>Tuyên bố y tế quan trọng:</strong> Thông tin cung cấp trên MedForum chỉ mang tính chất giáo dục và tham khảo. Không thay thế việc thăm khám trực tiếp với bác sĩ. Trong tình huống khẩn cấp, hãy gọi 115 hoặc đến cơ sở y tế gần nhất ngay lập tức.</p>
+    </div>
+</div>

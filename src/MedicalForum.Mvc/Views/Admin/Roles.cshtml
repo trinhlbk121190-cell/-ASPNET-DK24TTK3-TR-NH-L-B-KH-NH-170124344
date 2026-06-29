@@ -1,0 +1,294 @@
+@model List<MedicalForum.Mvc.Domain.Entities.User>
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "Phân quyền - Admin";
+    var userRolesMap = ViewBag.UserRolesMap as Dictionary<Guid, IList<string>> ?? new();
+    var allRoles = ViewBag.AllRoles as List<string> ?? new();
+}
+
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <nav class="admin-nav">
+            <a asp-controller="Admin" asp-action="Index" class="admin-nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a asp-controller="Admin" asp-action="Users" class="admin-nav-item"><i class="fas fa-users"></i> Người dùng</a>
+            <a asp-controller="Admin" asp-action="Roles" class="admin-nav-item active"><i class="fas fa-key"></i> Phân quyền</a>
+            <a asp-controller="Admin" asp-action="Verifications" class="admin-nav-item"><i class="fas fa-user-md"></i> Duyệt Bác sĩ</a>
+            <a asp-controller="Admin" asp-action="Reports" class="admin-nav-item"><i class="fas fa-flag"></i> Báo cáo</a>
+            <a asp-controller="Admin" asp-action="Posts" class="admin-nav-item"><i class="fas fa-file-alt"></i> Bài viết</a>
+        </nav>
+    </aside>
+
+    <main class="admin-main">
+        <div class="admin-topbar">
+            <h1 class="admin-page-title"><i class="fas fa-key"></i> Quản lý Phân quyền</h1>
+        </div>
+
+        <!-- All Roles Overview -->
+        <div class="roles-overview">
+            @foreach (var r in allRoles)
+            {
+                var count = userRolesMap.Count(kv => kv.Value.Contains(r));
+                var (icon, color) = r switch {
+                    "Admin"   => ("fas fa-shield-alt", "role-card-admin"),
+                    "Doctor"  => ("fas fa-user-md",    "role-card-doctor"),
+                    "Patient" => ("fas fa-user",        "role-card-patient"),
+                    _         => ("fas fa-key",          "role-card-other")
+                };
+                <div class="role-overview-card @color">
+                    <div class="roc-icon"><i class="@icon"></i></div>
+                    <div class="roc-info">
+                        <span class="roc-name">@r</span>
+                        <span class="roc-count">@count thành viên</span>
+                    </div>
+                </div>
+            }
+
+            <!-- Create New Role -->
+            <div class="role-overview-card role-card-new">
+                <form asp-controller="Admin" asp-action="CreateRole" method="post" class="create-role-form">
+                    @Html.AntiForgeryToken()
+                    <div class="roc-icon new"><i class="fas fa-plus"></i></div>
+                    <input type="text" name="roleName" placeholder="Tên quyền mới..." class="create-role-input" maxlength="50" />
+                    <button type="submit" class="btn-create-role">Tạo</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3><i class="fas fa-users-cog"></i> Danh sách người dùng & Phân quyền</h3>
+                <form asp-controller="Admin" asp-action="Roles" method="get" class="search-form" style="display:flex;gap:8px;">
+                    <input type="text" name="search" placeholder="Tìm theo tên, email..." value="@ViewBag.Search" class="form-control" style="width:260px" />
+                    <button type="submit" class="btn-search">Tìm</button>
+                </form>
+            </div>
+
+            <div class="roles-table-wrapper">
+                <table class="admin-table roles-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px">#</th>
+                            <th>Người dùng</th>
+                            <th>Email</th>
+                            <th>Quyền hiện có</th>
+                            <th>Cấp quyền</th>
+                            <th>Thu hồi quyền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int rowIdx = 1; }
+                        @foreach (var user in Model)
+                        {
+                            var currentRoles = userRolesMap.GetValueOrDefault(user.Id, new List<string>());
+                            var availableRoles = allRoles.Where(r => !currentRoles.Contains(r)).ToList();
+
+                            <tr class="@(user.IsBanned ? "banned-row" : "")">
+                                <td class="row-idx">@rowIdx++</td>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-cell-avatar">@(user.FullName?.Substring(0, 1).ToUpper())</div>
+                                        <div>
+                                            <strong>@user.FullName</strong>
+                                            @if (user.IsVerifiedDoctor)
+                                            { <span class="verified-mini" title="Bác sĩ xác thực"><i class="fas fa-check-circle"></i></span> }
+                                            @if (user.IsBanned)
+                                            { <span class="banned-label">Bị khóa</span> }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="email-cell">@user.Email</td>
+
+                                <!-- Current Roles -->
+                                <td>
+                                    <div class="roles-chips">
+                                        @if (!currentRoles.Any())
+                                        {
+                                            <span class="chip-empty">Chưa có quyền</span>
+                                        }
+                                        @foreach (var role in currentRoles)
+                                        {
+                                            <span class="role-chip @role.ToLower()">
+                                                @role
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <!-- Assign Role -->
+                                <td>
+                                    @if (availableRoles.Any())
+                                    {
+                                        <form asp-controller="Admin" asp-action="AssignRole" method="post" class="role-action-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <select name="role" class="role-select">
+                                                @foreach (var r in availableRoles)
+                                                {
+                                                    <option value="@r">@r</option>
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn-assign" title="Cấp quyền">
+                                                <i class="fas fa-plus"></i> Cấp
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="all-roles-assigned"><i class="fas fa-check"></i> Đủ quyền</span>
+                                    }
+                                </td>
+
+                                <!-- Remove Role -->
+                                <td>
+                                    @if (currentRoles.Any())
+                                    {
+                                        <form asp-controller="Admin" asp-action="RemoveRole" method="post" class="role-action-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <select name="role" class="role-select danger">
+                                                @foreach (var role in currentRoles)
+                                                {
+                                                    <option value="@role">@role</option>
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn-revoke"
+                                                    onclick="return confirm('Thu hồi quyền này của @user.FullName?')"
+                                                    title="Thu hồi quyền">
+                                                <i class="fas fa-minus"></i> Thu hồi
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="no-roles-label">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="roles-legend">
+            <h4><i class="fas fa-info-circle"></i> Chú thích quyền</h4>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <span class="role-chip admin">Admin</span>
+                    <p>Toàn quyền quản trị hệ thống: duyệt bác sĩ, xử lý báo cáo, quản lý người dùng, xóa bài viết.</p>
+                </div>
+                <div class="legend-item">
+                    <span class="role-chip doctor">Doctor</span>
+                    <p>Bác sĩ xác thực: phản hồi được ưu tiên ghim, hiển thị badge xanh, cấp badge tự động khi gán quyền.</p>
+                </div>
+                <div class="legend-item">
+                    <span class="role-chip patient">Patient</span>
+                    <p>Người dùng phổ thông: đặt câu hỏi, bình luận, upvote/downvote, báo cáo vi phạm.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+/* ====== Role Management Extra Styles ====== */
+.roles-overview {
+    display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+}
+.role-overview-card {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1.2rem 1.5rem; border-radius: 14px;
+    border: 1px solid var(--border); min-width: 200px;
+    transition: all 0.2s;
+}
+.role-card-admin  { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.25); }
+.role-card-doctor { background: rgba(20,184,166,0.08);  border-color: rgba(20,184,166,0.25); }
+.role-card-patient{ background: rgba(14,165,233,0.08);  border-color: rgba(14,165,233,0.25); }
+.role-card-other  { background: rgba(139,92,246,0.08);  border-color: rgba(139,92,246,0.25); }
+.role-card-new    { background: var(--card-bg); border: 2px dashed var(--border); flex: 1; min-width: 260px; }
+.roc-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
+}
+.role-card-admin  .roc-icon { background: rgba(245,158,11,0.2); color: #fbbf24; }
+.role-card-doctor .roc-icon { background: rgba(20,184,166,0.2); color: #2dd4bf; }
+.role-card-patient .roc-icon{ background: rgba(14,165,233,0.2); color: #38bdf8; }
+.role-card-other  .roc-icon { background: rgba(139,92,246,0.2); color: #a78bfa; }
+.roc-icon.new { background: var(--glass); color: var(--text-muted); }
+.roc-info { display: flex; flex-direction: column; }
+.roc-name { font-weight: 700; font-size: 1rem; }
+.roc-count { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.create-role-form { display: flex; align-items: center; gap: 8px; flex: 1; }
+.create-role-input {
+    flex: 1; background: var(--dark-2); border: 1px solid var(--border);
+    color: var(--text-primary); border-radius: 8px; padding: 9px 12px; font-size: 0.875rem;
+}
+.btn-create-role {
+    padding: 9px 18px; background: var(--gradient); color: white;
+    border: none; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Table */
+.roles-table-wrapper { overflow-x: auto; }
+.roles-table .row-idx { color: var(--text-muted); font-size: 0.8rem; }
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gradient); display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: white; font-size: 0.9rem; flex-shrink: 0;
+}
+.email-cell { color: var(--text-muted); font-size: 0.82rem; }
+.banned-label { font-size: 0.72rem; background: rgba(239,68,68,0.15); color: #f87171; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+
+/* Role Chips */
+.roles-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.role-chip {
+    padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.role-chip.admin   { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.role-chip.doctor  { background: rgba(20,184,166,0.2); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3); }
+.role-chip.patient { background: rgba(14,165,233,0.2); color: #38bdf8; border: 1px solid rgba(14,165,233,0.25); }
+.role-chip.moderator { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+.chip-empty { font-size: 0.78rem; color: var(--text-muted); font-style: italic; }
+
+/* Role Action Forms */
+.role-action-form { display: flex; align-items: center; gap: 6px; }
+.role-select {
+    background: var(--dark-2); border: 1px solid var(--border);
+    color: var(--text-primary); border-radius: 8px; padding: 6px 10px;
+    font-size: 0.82rem; cursor: pointer;
+}
+.role-select.danger { border-color: rgba(239,68,68,0.3); }
+.btn-assign {
+    padding: 6px 14px; background: rgba(34,197,94,0.15); color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3); border-radius: 8px;
+    cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+    display: flex; align-items: center; gap: 5px; transition: all 0.2s;
+}
+.btn-assign:hover { background: rgba(34,197,94,0.25); }
+.btn-revoke {
+    padding: 6px 14px; background: rgba(239,68,68,0.12); color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;
+    cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+    display: flex; align-items: center; gap: 5px; transition: all 0.2s;
+}
+.btn-revoke:hover { background: rgba(239,68,68,0.22); }
+.all-roles-assigned { font-size: 0.8rem; color: var(--secondary); }
+.no-roles-label { color: var(--text-muted); }
+
+/* Legend */
+.roles-legend {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; margin-top: 1.5rem;
+}
+.roles-legend h4 { font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary); }
+.legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; }
+.legend-item { display: flex; flex-direction: column; gap: 6px; }
+.legend-item p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+</style>
