@@ -4,12 +4,12 @@
 ---
 
 ## 👨‍💻 Thông tin Sinh viên & Giảng viên hướng dẫn
-*   **Sinh viên thực hiện:** Trịnh Lê Bá Khánh
+*   **Sinh viên thực hiện:** Lê Bá Khánh Trình
 *   **Mã số sinh viên (MSSV):** 170124344
 *   **Lớp sinh hoạt:** D24TTK3
 *   **Email liên hệ:** trinhlebakhanh.d24ttk3@gmail.com
-*   **Số điện thoại:** 0905.xxx.xxx (Vui lòng cập nhật số điện thoại của bạn tại đây)
-*   **Giáo viên hướng dẫn (GVHD):** Thầy Đoàn Nguyễn Ngọc Duyên
+*   **Số điện thoại:** 0938480345
+*   **Giáo viên hướng dẫn (GVHD):** Thầy Đoàn Phước Miền
 *   **GitHub Repository:** [ASPNET-D24TTK3-trinhlekhanh-MedForum](https://github.com/trinhlbk121190-cell/-ASPNET-DK24TTK3-TR-NH-L-B-KH-NH-170124344.git)
 *   **Tài khoản cộng tác viên GVHD:** `antonio86doan@gmail.com`
 
